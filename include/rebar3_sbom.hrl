@@ -4,10 +4,6 @@
 -define(PROVIDER, sbom).
 -define(DEPS, [lock]).
 
--record(metadata, {
-    timestamp :: string(),
-    tools = [] :: [string()]
-}).
 
 -record(component, {
     type = "library",
@@ -19,6 +15,12 @@
     hashes :: [#{alg := string(), hash := string()}],
     licenses :: [#{name := string()} | #{id := string()}],
     purl :: string()
+}).
+
+-record(metadata, {
+    timestamp :: string(),
+    component :: #component{},
+    tools = [] :: [string()]
 }).
 
 -record(dependency, {
