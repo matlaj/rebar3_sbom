@@ -9,7 +9,11 @@
 
 encode(SBoM) ->
     Content = sbom_to_json(SBoM),
-    jsone:encode(Content, [native_forward_slash, native_utf8, canonical_form]).
+    Opts = [
+        native_forward_slash, native_utf8, canonical_form,
+        {indent, 2}, {space, 1}
+    ],
+    jsone:encode(Content, Opts).
 
 decode(FilePath) ->
     % Note: This sets the SBoM version to 0 if the json file
