@@ -120,13 +120,13 @@ xml_to_component(Component) ->
     #component{
         type = Type,
         bom_ref = BomRef,
-        authors = Authors,
+        authors = replace_if_empty(Authors),
         name = xml_to_component_field(Name),
         version = xml_to_component_field(Version),
         description = xml_to_component_field(Description),
         purl = xml_to_component_field(Purl),
-        hashes = Hashes,
-        licenses = Licenses
+        hashes = replace_if_empty(Hashes),
+        licenses = replace_if_empty(Licenses)
     }.
 
 xml_to_component_field([]) ->
@@ -154,3 +154,8 @@ xml_to_license(LicenseElement) ->
 
 xpath(String, Xml) ->
     xmerl_xpath:string(String, Xml).
+
+replace_if_empty([]) ->
+    undefined;
+replace_if_empty(List) ->
+    List.
