@@ -4,8 +4,8 @@
 
 -include("rebar3_sbom.hrl").
 
--define(SPEC_VERSION, <<"1.4">>).
--define(SCHEMA, <<"http://cyclonedx.org/schema/bom-1.4.schema.json">>).
+-define(SPEC_VERSION, <<"1.6">>).
+-define(SCHEMA, <<"http://cyclonedx.org/schema/bom-1.6.schema.json">>).
 
 encode(SBoM) ->
     Content = sbom_to_json(SBoM),
@@ -45,7 +45,7 @@ component_to_json(C) ->
     prune_content(#{
         type => bin(C#component.type),
         'bom-ref' => bin(C#component.bom_ref),
-        author => bin(C#component.author),
+        authors => authors_to_json(C#component.authors),
         name => bin(C#component.name),
         version => bin(C#component.version),
         description => bin(C#component.description),
@@ -56,6 +56,14 @@ component_to_json(C) ->
 
 prune_content(Component) ->
     maps:filter(fun(_, Value) -> Value =/= undefined end, Component).
+
+authors_to_json(undefined) ->
+    undefined;
+authors_to_json(Authors) ->
+    [author_to_json(A) || A <- Authors].
+
+author_to_json(#{name := Name}) ->
+    #{name => bin(Name)}.
 
 hashes_to_json(undefined) ->
     undefined;
@@ -96,7 +104,7 @@ json_to_components(Components) when is_list(Components) ->
 json_to_components(C) ->
     #component{
         bom_ref = json_to_component_field(<<"bom-ref">>, C),
-        author = json_to_component_field(<<"author">>, C),
+        authors = json_to_component_field(<<"authors">>, C),
         description = json_to_component_field(<<"description">>, C),
         hashes = json_to_component_field(<<"hashes">>, C),
         licenses = json_to_component_field(<<"licenses">>, C),
@@ -106,12 +114,22 @@ json_to_components(C) ->
         version = json_to_component_field(<<"version">>, C)
     }.
 
+json_to_component_field(<<"authors">> = F, Component) ->
+    json_to_authors(maps:get(F, Component, undefined));
 json_to_component_field(<<"hashes">> = F, Component) ->
     json_to_hashes(maps:get(F, Component, undefined));
 json_to_component_field(<<"licenses">> = F, Component) ->
     json_to_licenses(maps:get(F, Component, undefined));
 json_to_component_field(FieldName, Component) ->
     str(maps:get(FieldName, Component, undefined)).
+
+json_to_authors(undefined) ->
+    undefined;
+json_to_authors(Authors) ->
+    [json_to_author(A) || A <- Authors].
+
+json_to_author(#{<<"name">> := Name}) ->
+    #{name => str(Name)}.
 
 json_to_hashes(undefined) ->
     undefined;

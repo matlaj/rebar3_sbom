@@ -38,7 +38,7 @@ component(RawComponent) ->
     #component{
         bom_ref = bom_ref_of_component(RawComponent),
         name = component_field(name, RawComponent),
-        author = component_field(author, RawComponent),
+        authors = component_field(authors, RawComponent),
         version = component_field(version, RawComponent),
         description = component_field(description, RawComponent),
         hashes = component_field(sha256, RawComponent),
@@ -46,12 +46,12 @@ component(RawComponent) ->
         purl = component_field(purl, RawComponent)
     }.
 
-component_field(author = Field, RawComponent) ->
+component_field(authors = Field, RawComponent) ->
     case proplists:get_value(Field, RawComponent) of
         undefined ->
             undefined;
-        Value ->
-            string:join(Value, ",")
+        Values ->
+            [#{name => V} || V <- Values]
     end;
 component_field(licenses = Field, RawComponent) ->
     case proplists:get_value(Field, RawComponent) of

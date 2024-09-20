@@ -5,9 +5,9 @@
 -include("rebar3_sbom.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
--define(XMLNS, "http://cyclonedx.org/schema/bom/1.4").
+-define(XMLNS, "http://cyclonedx.org/schema/bom/1.6").
 -define(XMLNS_XSI, "http://www.w3.org/2001/XMLSchema-instance").
--define(XSI_SCHEMA_LOC, "http://cyclonedx.org/schema/bom/1.4 https://cyclonedx.org/schema/bom-1.4.xsd").
+-define(XSI_SCHEMA_LOC, "http://cyclonedx.org/schema/bom/1.6 https://cyclonedx.org/schema/bom-1.6.xsd").
 
 encode(SBoM) ->
     Content = sbom_to_xml(SBoM),
@@ -44,10 +44,10 @@ sbom_to_xml(#sbom{metadata = Metadata} = SBoM) ->
         [
             {metadata, [
                 {timestamp, [Metadata#metadata.timestamp]},
-                {component, [component_to_xml(Metadata#metadata.component)]},
                 {tools,
                     [tool_to_xml(Tool) || Tool <- Metadata#metadata.tools]
-                }
+                },
+                component_to_xml(Metadata#metadata.component)
             ]},
             {components, [component_to_xml(C) || C <- SBoM#sbom.components]},
             {dependencies, [dependency_to_xml(D) || D <- SBoM#sbom.dependencies]}
@@ -60,7 +60,7 @@ tool_to_xml(Tool) ->
 component_to_xml(C) ->
     Attributes = [{type, C#component.type}, {'bom-ref', C#component.bom_ref}],
     Content = prune_content([
-        component_field_to_xml(author, C#component.author),
+        component_field_to_xml(authors, C#component.authors),
         component_field_to_xml(name, C#component.name),
         component_field_to_xml(version, C#component.version),
         component_field_to_xml(description, C#component.description),
@@ -75,12 +75,17 @@ prune_content(Content) ->
 
 component_field_to_xml(_, undefined) ->
     undefined;
+component_field_to_xml(authors, Authors) ->
+    {authors, [author_to_xml(Author) || Author <- Authors]};
 component_field_to_xml(hashes, Hashes) ->
     {hashes, [hash_to_xml(Hash) || Hash <- Hashes]};
 component_field_to_xml(licenses, Licenses) ->
     {licenses, [license_to_xml(License) || License <- Licenses]};
 component_field_to_xml(FieldName, Value) ->
     {FieldName, [Value]}.
+
+author_to_xml(#{name := Name}) ->
+    {author, [{name, [Name]}]}.
 
 hash_to_xml(#{alg := Alg, hash := Hash}) ->
     {hash, [{alg, Alg}], [Hash]}.
@@ -99,7 +104,9 @@ dependency_to_xml(Dependency) ->
 xml_to_component(Component) ->
     [#xmlAttribute{value = Type}] = xpath("/component/@type", Component),
     [#xmlAttribute{value = BomRef}] = xpath("/component/@bom-ref", Component),
-    Author = xpath("/component/author/text()", Component),
+    Authors = [
+        xml_to_author(A) || A <- xpath("/component/authors/author", Component)
+    ],
     Name = xpath("/component/name/text()", Component),
     Version = xpath("/component/version/text()", Component),
     Description = xpath("/component/description/text()", Component),
@@ -113,7 +120,7 @@ xml_to_component(Component) ->
     #component{
         type = Type,
         bom_ref = BomRef,
-        author = xml_to_component_field(Author),
+        authors = Authors,
         name = xml_to_component_field(Name),
         version = xml_to_component_field(Version),
         description = xml_to_component_field(Description),
@@ -126,6 +133,10 @@ xml_to_component_field([]) ->
     undefined;
 xml_to_component_field([#xmlText{value = Value}]) ->
     Value.
+
+xml_to_author(AuthorElement) ->
+    [Author] = xpath("/author/name/text()", AuthorElement),
+    #{name => Author#xmlText.value}.
 
 xml_to_hash(HashElement) ->
     [#xmlText{value = Hash}] = xpath("/hash/text()", HashElement),
