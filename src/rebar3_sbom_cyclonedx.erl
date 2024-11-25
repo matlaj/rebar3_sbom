@@ -1,19 +1,19 @@
 -module(rebar3_sbom_cyclonedx).
 
--export([bom/3, bom/4, uuid/0]).
+-export([bom/4, bom/5, uuid/0]).
 
 -include("rebar3_sbom.hrl").
 
-bom(FileInfo, IsStrictVersion, RawComponents) ->
-    bom(FileInfo, IsStrictVersion, RawComponents, uuid()).
+bom(FileInfo, IsStrictVersion, AppInfo, RawComponents) ->
+    bom(FileInfo, IsStrictVersion, AppInfo, RawComponents, uuid()).
 
-bom({FilePath, _} = FileInfo, IsStrictVersion, RawComponents, Serial) ->
+bom({FilePath, _} = FileInfo, IsStrictVersion, AppInfo, RawComponents, Serial) ->
     ValidRawComponents = lists:filter(fun(E) -> E =/= undefined end, RawComponents),
     SBoM = #sbom{
         serial = Serial,
-        metadata = metadata(),
+        metadata = metadata(AppInfo),
         components = components(ValidRawComponents),
-        dependencies = dependencies(ValidRawComponents)
+        dependencies = [dependency(AppInfo) | dependencies(ValidRawComponents)]
     },
     try
         V = version(FileInfo, IsStrictVersion, SBoM),
@@ -24,10 +24,11 @@ bom({FilePath, _} = FileInfo, IsStrictVersion, RawComponents, Serial) ->
         SBoM
     end.
 
-metadata() ->
+metadata(App) ->
     #metadata{
         timestamp = calendar:system_time_to_rfc3339(erlang:system_time(second)),
-        tools = [?APP]
+        tools = [?APP],
+        component = component(App)
     }.
 
 components(RawComponents) ->

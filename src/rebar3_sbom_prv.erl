@@ -33,11 +33,13 @@ do(State) ->
     Output = proplists:get_value(output, Args),
     Force = proplists:get_value(force, Args),
     IsStrictVersion = proplists:get_value(strict_version, Args),
+    [App0 | _] = rebar_state:project_apps(State),
+    App = rebar_app_info:source(App0, root_app),
 
     FilePath = filepath(Output, Format),
-    Deps = rebar_state:all_deps(State),
-    DepsInfo = [dep_info(Dep) || Dep <- Deps],
-    SBoM = rebar3_sbom_cyclonedx:bom({FilePath, Format}, IsStrictVersion, DepsInfo),
+    DepsInfo = [dep_info(Dep) || Dep <- rebar_state:all_deps(State)],
+    AppInfo = dep_info(App),
+    SBoM = rebar3_sbom_cyclonedx:bom({FilePath, Format}, IsStrictVersion, AppInfo, DepsInfo),
     Contents = case Format of
         "xml" -> rebar3_sbom_xml:encode(SBoM);
         "json" -> rebar3_sbom_json:encode(SBoM)
@@ -122,8 +124,9 @@ dep_info(Name, DepVersion, {git, Git, GitRef}, Common) ->
 dep_info(Name, Version, {git_subdir, Git, Ref, _Dir}, Common) ->
     dep_info(Name, Version, {git, Git, Ref}, Common);
 
-dep_info(_Name, _Version, _Source, _Common) ->
-    undefined.
+dep_info(Name, Version, root_app, Common) ->
+    Purl = rebar3_sbom_purl:hex(Name, Version),
+    [{name, Name}, {version, Version}, {purl, Purl} | Common].
 
 filepath(?DEFAULT_OUTPUT, Format) ->
     "./bom." ++ Format;

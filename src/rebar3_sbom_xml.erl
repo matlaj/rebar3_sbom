@@ -44,6 +44,7 @@ sbom_to_xml(#sbom{metadata = Metadata} = SBoM) ->
         [
             {metadata, [
                 {timestamp, [Metadata#metadata.timestamp]},
+                {component, [component_to_xml(Metadata#metadata.component)]},
                 {tools,
                     [tool_to_xml(Tool) || Tool <- Metadata#metadata.tools]
                 }

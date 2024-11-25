@@ -9,7 +9,11 @@
 
 encode(SBoM) ->
     Content = sbom_to_json(SBoM),
-    jsone:encode(Content, [native_forward_slash, native_utf8, canonical_form]).
+    Opts = [
+        native_forward_slash, native_utf8, canonical_form,
+        {indent, 2}, {space, 1}
+    ],
+    jsone:encode(Content, Opts).
 
 decode(FilePath) ->
     % Note: This sets the SBoM version to 0 if the json file
@@ -30,7 +34,8 @@ sbom_to_json(#sbom{metadata = Metadata} = SBoM) ->
         version => SBoM#sbom.version,
         metadata => #{
             timestamp => bin(Metadata#metadata.timestamp),
-            tools => [#{name => bin(T)} || T <- Metadata#metadata.tools]
+            tools => [#{name => bin(T)} || T <- Metadata#metadata.tools],
+            component => component_to_json(Metadata#metadata.component)
         },
         components => [component_to_json(C) || C <- SBoM#sbom.components],
         dependencies => [dependency_to_json(D) || D <- SBoM#sbom.dependencies]
