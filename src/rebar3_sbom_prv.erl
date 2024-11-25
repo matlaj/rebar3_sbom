@@ -68,7 +68,7 @@ dep_info(Dep) ->
     Licenses = lists:usort(Licenses0 ++ HexMetadataLicenses),
     Common =
         [
-         {author, proplists:get_value(maintainers, Details)},
+         {authors, proplists:get_value(maintainers, Details)},
          {description, proplists:get_value(description, Details)},
          {licenses, Licenses},
          {dependencies, Deps}

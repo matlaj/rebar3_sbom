@@ -8,7 +8,7 @@
 -record(component, {
     type = "library",
     bom_ref :: string(),
-    author :: string(),
+    authors :: [#{name := string()}],
     name :: string(),
     version :: string(),
     description :: string(),
