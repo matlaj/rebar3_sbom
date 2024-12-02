@@ -6,7 +6,7 @@
 
 
 -record(component, {
-    type = "library",
+    type = "application",
     bom_ref :: string(),
     authors :: [#{name := string()}],
     name :: string(),
