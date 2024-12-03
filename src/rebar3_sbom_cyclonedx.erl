@@ -18,7 +18,7 @@ bom({FilePath, _} = FileInfo, IsStrictVersion, AppInfo, RawComponents, Serial) -
     try
         V = version(FileInfo, IsStrictVersion, SBoM),
         SBoM#sbom{version = V}
-    catch _:Reason ->
+    catch _:Reason:_Stacktrace ->
         logger:error("scan file:~ts failed, reason:~p, will use the default version number ~p",
                      [FilePath, Reason, ?DEFAULT_VERSION]),
         SBoM
@@ -43,6 +43,7 @@ component(RawComponent) ->
         description = component_field(description, RawComponent),
         hashes = component_field(sha256, RawComponent),
         licenses = component_field(licenses, RawComponent),
+        externalReferences = component_field(external_references, RawComponent),
         purl = component_field(purl, RawComponent)
     }.
 
@@ -66,6 +67,15 @@ component_field(sha256 = Field, RawComponent) ->
             undefined;
         Hash ->
             [#{alg => "SHA-256", hash => binary:bin_to_list(Hash)}]
+    end;
+component_field(external_references = Field, RawComponent) ->
+    case proplists:get_value(Field, RawComponent) of
+        undefined ->
+            undefined;
+        [] ->
+            undefined;
+        References ->
+            [#{type => Type, url => Url} || {Type, Url} <- References]
     end;
 component_field(Field, RawComponent) ->
     case proplists:get_value(Field, RawComponent) of

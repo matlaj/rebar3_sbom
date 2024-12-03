@@ -14,6 +14,7 @@
     description :: string(),
     hashes :: [#{alg := string(), hash := string()}],
     licenses :: [#{name := string()} | #{id := string()}],
+    externalReferences :: [#{type := string(), url := string()}],
     purl :: string()
 }).
 

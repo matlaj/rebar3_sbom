@@ -51,6 +51,7 @@ component_to_json(C) ->
         description => bin(C#component.description),
         hashes => hashes_to_json(C#component.hashes),
         licenses => licenses_to_json(C#component.licenses),
+        externalReferences => external_references_to_json(C#component.externalReferences),
         purl => bin(C#component.purl)
     }).
 
@@ -72,6 +73,14 @@ hashes_to_json(Hashes) ->
 
 hash_to_json(#{alg := Alg, hash := Hash}) ->
     #{alg => bin(Alg), content => bin(Hash)}.
+
+external_references_to_json(undefined) ->
+    undefined;
+external_references_to_json(ExternalReferences) ->
+    [external_reference_to_json(R) || R <- ExternalReferences].
+
+external_reference_to_json(#{type := Type, url := Url}) ->
+    #{type => bin(Type), url => bin(Url)}.
 
 licenses_to_json(undefined) ->
     undefined;
@@ -111,6 +120,7 @@ json_to_components(C) ->
         name = json_to_component_field(<<"name">>, C),
         purl = json_to_component_field(<<"purl">>, C),
         type = json_to_component_field(<<"type">>, C),
+        externalReferences = json_to_component_field(<<"externalReferences">>, C),
         version = json_to_component_field(<<"version">>, C)
     }.
 
@@ -120,6 +130,8 @@ json_to_component_field(<<"hashes">> = F, Component) ->
     json_to_hashes(maps:get(F, Component, undefined));
 json_to_component_field(<<"licenses">> = F, Component) ->
     json_to_licenses(maps:get(F, Component, undefined));
+json_to_component_field(<<"externalReferences">> = F, Component) ->
+    json_to_external_references(maps:get(F, Component, undefined));
 json_to_component_field(FieldName, Component) ->
     str(maps:get(FieldName, Component, undefined)).
 
@@ -149,6 +161,13 @@ json_to_license(#{<<"license">> := #{<<"id">> := Id}}) ->
 json_to_license(#{<<"license">> := #{<<"name">> := Name}}) ->
     #{name => str(Name)}.
 
+json_to_external_references(undefined) ->
+    undefined;
+json_to_external_references(ExternalReferences) ->
+    [json_to_external_reference(R) || R <- ExternalReferences].
+
+json_to_external_reference(#{<<"type">> := Type, <<"url">> := Url}) ->
+    #{type => str(Type), url => str(Url)}.
 
 str(undefined) ->
     undefined;

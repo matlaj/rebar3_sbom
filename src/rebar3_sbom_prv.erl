@@ -64,6 +64,12 @@ dep_info(Dep) ->
     Deps = rebar_app_info:deps(Dep),
     Licenses0 = proplists:get_value(licenses, Details, []),
     HexMetadataLicenses = hex_metadata_licenses(Dep),
+    ExternalReferences = case proplists:get_value(links, Details) of
+        undefined ->
+            undefined;
+        Links ->
+            find_references(Links)
+    end,
     % remove duplicates, if any
     Licenses = lists:usort(Licenses0 ++ HexMetadataLicenses),
     Common =
@@ -71,6 +77,7 @@ dep_info(Dep) ->
          {authors, proplists:get_value(maintainers, Details)},
          {description, proplists:get_value(description, Details)},
          {licenses, Licenses},
+         {external_references, ExternalReferences},
          {dependencies, Deps}
         ],
     dep_info(Name, Version, Source, Common).
@@ -89,6 +96,28 @@ hex_metadata_licenses(Dep) ->
         false ->
             []
     end.
+
+find_references(Links) ->
+    lists:filtermap(
+        fun({Type, _}) ->
+                lists:member(Type, valid_external_reference_types());
+           (_) -> false
+        end,
+        Links
+    ).
+
+valid_external_reference_types() ->
+    % https://cyclonedx.org/docs/1.6/json/#metadata_component_externalReferences_items_type
+    ["vcs", "issue-tracker", "website", "advisories", "bom", "mailing-list",
+     "social", "chat", "documentation", "support", "source-distribution",
+     "distribution", "distribution-intake", "license", "build-meta", "build-system",
+     "release-notes", "security-contact", "model-card", "log", "configuration",
+     "evidence", "formulation", "attestation", "threat-model", "adversary-model",
+     "risk-assessment", "vulnerability-assertion", "exploitability-statement",
+     "pentest-report", "static-analysis-report", "dynamic-analysis-report",
+     "runtime-analysis-report", "component-analysis-report", "maturity-report",
+     "certification-report", "codified-infrastructure", "quality-metrics",
+     "poam", "electronic-signature", "digital-signature", "rfc-9116", "other"].
 
 dep_info(_Name, _Version, {pkg, Name, Version, Sha256}, Common) ->
     [
