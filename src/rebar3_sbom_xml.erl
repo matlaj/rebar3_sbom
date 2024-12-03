@@ -66,7 +66,8 @@ component_to_xml(C) ->
         component_field_to_xml(description, C#component.description),
         component_field_to_xml(hashes, C#component.hashes),
         component_field_to_xml(licenses, C#component.licenses),
-        component_field_to_xml(purl, C#component.purl)
+        component_field_to_xml(purl, C#component.purl),
+        component_field_to_xml(externalReferences, C#component.externalReferences)
     ]),
     {component, Attributes, Content}.
 
@@ -81,6 +82,8 @@ component_field_to_xml(hashes, Hashes) ->
     {hashes, [hash_to_xml(Hash) || Hash <- Hashes]};
 component_field_to_xml(licenses, Licenses) ->
     {licenses, [license_to_xml(License) || License <- Licenses]};
+component_field_to_xml(externalReferences, ExternalReferences) ->
+    {externalReferences, [external_reference_to_xml(Ref) || Ref <- ExternalReferences]};
 component_field_to_xml(FieldName, Value) ->
     {FieldName, [Value]}.
 
@@ -94,6 +97,9 @@ license_to_xml(#{name := Name}) ->
     {license, [{name, [Name]}]};
 license_to_xml(#{id := Id}) ->
     {license, [{id, [Id]}]}.
+
+external_reference_to_xml(#{type := Type, url := Url}) ->
+    {reference, [{type, Type}], [{url, [Url]}]}.
 
 dependency_to_xml(Dependency) ->
     {dependency, [{ref, Dependency#dependency.ref}],
@@ -114,6 +120,9 @@ xml_to_component(Component) ->
     Hashes = [
         xml_to_hash(H) || H <- xpath("/component/hashes/hash", Component)
     ],
+    ExternalReferences = [
+        xml_to_external_reference(Ref) || Ref <- xpath("/component/externalReferences/reference", Component)
+    ],
     Licenses = [
         xml_to_license(L) || L <- xpath("/component/licenses/license", Component)
     ],
@@ -126,7 +135,8 @@ xml_to_component(Component) ->
         description = xml_to_component_field(Description),
         purl = xml_to_component_field(Purl),
         hashes = replace_if_empty(Hashes),
-        licenses = replace_if_empty(Licenses)
+        licenses = replace_if_empty(Licenses),
+        externalReferences = replace_if_empty(ExternalReferences)
     }.
 
 xml_to_component_field([]) ->
@@ -139,9 +149,14 @@ xml_to_author(AuthorElement) ->
     #{name => Author#xmlText.value}.
 
 xml_to_hash(HashElement) ->
-    [#xmlText{value = Hash}] = xpath("/hash/text()", HashElement),
     [#xmlAttribute{value = Alg}] = xpath("/hash/@alg", HashElement),
-    #{hash => Hash, alg => Alg}.
+    [#xmlText{value = Hash}] = xpath("/hash/text()", HashElement),
+    #{alg => Alg, hash => Hash}.
+
+xml_to_external_reference(ExternalReferenceElement) ->
+    [#xmlAttribute{value = Type}] = xpath("/reference/@type", ExternalReferenceElement),
+    [#xmlText{value = Url}] = xpath("/reference/url/text()", ExternalReferenceElement),
+    #{type => Type, url => Url}.
 
 xml_to_license(LicenseElement) ->
     case xpath("/license/id/text()", LicenseElement) of
